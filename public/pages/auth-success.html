@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Authentication Success</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f5f5f5;
+      }
+      .container {
+        text-align: center;
+        padding: 20px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #4caf50;
+        margin-bottom: 16px;
+      }
+      p {
+        color: #666;
+        margin-bottom: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Authentication Successful!</h1>
+      <p>You can now return to the app.</p>
+    </div>
+    <script>
+      // Function to parse query parameters
+      function getQueryParams() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+          token: params.get("token"),
+          userId: params.get("userId"),
+        };
+      }
+
+      // Send data back to app
+      window.onload = function () {
+        const authData = getQueryParams();
+
+        // For Android
+        if (window.AndroidInterface) {
+          window.AndroidInterface.onAuthComplete(JSON.stringify(authData));
+        }
+
+        // For iOS
+        if (
+          window.webkit &&
+          window.webkit.messageHandlers &&
+          window.webkit.messageHandlers.iOSInterface
+        ) {
+          window.webkit.messageHandlers.iOSInterface.postMessage(authData);
+        }
+      };
+    </script>
+  </body>
+</html>
