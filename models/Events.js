@@ -16,7 +16,7 @@ const eventAgendaItemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-});
+},{_id:false});
 const locationSchema = new mongoose.Schema({
   address: { type: String, required: true },
   address2: { type: String, default: null },
