@@ -51,14 +51,14 @@ export const addEvent = async (req, res, next) => {
     // console.log(`event data`, eventData);
 
     // Validate event inputs
-    const validationErrors = validateEventInputs(eventData);
-    if (validationErrors) {
-      return res.status(422).json({
-        success: false,
-        message: "Validation failed",
-        errors: validationErrors,
-      });
-    }
+    // const validationErrors = validateEventInputs(eventData);
+    // if (validationErrors) {
+    //   return res.status(422).json({
+    //     success: false,
+    //     message: "Validation failed",
+    //     errors: validationErrors,
+    //   });
+    // }
 
     // Validate dates
     const startDateObj = new Date(eventData.startDate);
