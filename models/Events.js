@@ -73,8 +73,8 @@ const eventSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    maxAttendees: { type: Number, default: Infinity },
-    currentNoOfAttendees: { type: Number, default: 0 },
+    maxAttendees: { type: String, default: Infinity },
+    currentNoOfAttendees: { type: String, default: 0 },
     eventAgenda: {
       type: [eventAgendaItemSchema],
       required: true,
