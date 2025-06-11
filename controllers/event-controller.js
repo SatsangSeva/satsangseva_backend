@@ -116,7 +116,7 @@ export const addEvent = async (req, res, next) => {
       // const session = await mongoose.startSession();
       try {
         // session.startTransaction();
-        const adminUser = await Admin.findById(adminId);
+        const adminUser = await User.findById(adminId);
         console.log(`adminUser`, adminUser);
         if (!adminUser) {
           throw new Error("Admin user not found");
