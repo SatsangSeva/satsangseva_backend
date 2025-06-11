@@ -70,7 +70,7 @@ const eventSchema = new mongoose.Schema(
       required: true,
     },
     noOfAttendees: {
-      type: Number,
+      type: String,
       required: true,
     },
     maxAttendees: { type: String, default: Infinity },
