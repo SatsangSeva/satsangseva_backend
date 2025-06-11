@@ -49,10 +49,10 @@ export function validateEventInputs(inputs) {
       "Event language is required and must be a non-empty string";
   }
 
-  if (!inputs.noOfAttendees || typeof inputs.noOfAttendees !== "number") {
-    errors.noOfAttendees =
-      "Number of attendees is required and must be a positive integer";
-  }
+  // if (!inputs.noOfAttendees || typeof inputs.noOfAttendees !== "number") {
+  //   errors.noOfAttendees =
+  //     "Number of attendees is required and must be a positive integer";
+  // }
 
   if (
     !inputs.artistOrOratorName ||
@@ -80,11 +80,11 @@ export function validateEventInputs(inputs) {
   }
 
   // Modified validation for bookingLink - keeping it optional but validating if provided
-  if (inputs.bookingLink && inputs.bookingLink !== undefined && inputs.bookingLink !== null) {
-    if (typeof inputs.bookingLink !== "string" || !/^(https?:\/\/[^\s]+|na)$/i.test(inputs.bookingLink.trim())) {
-      errors.bookingLink = "Booking link must be a valid URL";
-    }
-  }
+  // if (inputs.bookingLink && inputs.bookingLink !== undefined && inputs.bookingLink !== null) {
+  //   if (typeof inputs.bookingLink !== "string" || !/^(https?:\/\/[^\s]+|na)$/i.test(inputs.bookingLink.trim())) {
+  //     errors.bookingLink = "Booking link must be a valid URL";
+  //   }
+  // }
   if (
     !inputs.locationLink ||
     typeof inputs.locationLink !== "string" ||
