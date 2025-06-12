@@ -10,8 +10,8 @@ const locationSchema = new Schema({
   postalCode: { type: String, required: true },
   country: { type: String, required: true },
   coordinates: {
-    lat: { type: String, required: true },
-    lng: { type: String, required: true },
+    lat: { type: String, require: true },
+    lng: { type: String, require: true },
   },
 },{_id:false});
 const userSchema = new Schema({
