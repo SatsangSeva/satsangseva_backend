@@ -1661,3 +1661,40 @@ const validatePassword = (password) => {
     errors,
   };
 };
+
+export const updateUserCoordinates = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { lat, lng } = req.body;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, message: "Latitude and Longitude are required." });
+    }
+
+    // Update or create coordinates inside user.location
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          "location.coordinates.lat": lat,
+          "location.coordinates.lng": lng,
+        },
+      },
+      { new: true, upsert: true } // new: return updated doc; upsert: create path if missing
+    ).lean();
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "User coordinates updated successfully.",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("Error updating coordinates:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
