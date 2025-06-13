@@ -48,7 +48,7 @@ app.use(
 // Middleware
 // app.use(morgan("tiny"));
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5000'], // Add more URLs if needed
+  origin: ['http://localhost:3000', 'http://localhost:5000','https://www.satsangseva.com'], // Add more URLs if needed
   credentials: true
 }));
 app.use(express.json());
