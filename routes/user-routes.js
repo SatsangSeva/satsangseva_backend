@@ -19,6 +19,7 @@ import {
   verifyFirebaseToken,
   changePassword,
   getUsersByType,
+  updateUserCoordinates,
 } from "../controllers/user-controller.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -45,6 +46,7 @@ userRouter.delete("/:id", deleteUser);
 userRouter.post("/login", login);
 userRouter.get("/bookings/:id", getBookingsOfUser);
 userRouter.get("/events/:id", getEventsOfUser);
+userRouter.put('/update-cordinates' ,authMiddleware, updateUserCoordinates)
 
 // Endpoint to verify Firebase token and return JWT
 userRouter.post("/auth/firebase", verifyFirebaseToken);
