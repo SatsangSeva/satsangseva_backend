@@ -6,14 +6,11 @@ import { validateEventInputs } from '../utils/eventValidators.js'
 import cloudinary, { getPublicIdFromUrl } from "../utils/cloudinary.js";
 import Bookings from "../models/Bookings.js";
 import dotenv from "dotenv";
-import Admin from "../models/Admin.js";
 import { calculateDistanceInKm, extractCoordinatesFromLink } from "../config/geoConfig.js";
 dotenv.config();
 
-// Contstants
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
-// Need user auth
 export const addEvent = async (req, res, next) => {
   const session = await mongoose.startSession();
   try {
@@ -794,24 +791,29 @@ export const getEventsByKM = async (req, res, next) => {
   }
 };
 
+
 export const getUpComingEvents = async (req, res, next) => {
   try {
     const currentDate = new Date();
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
     const skip = (page - 1) * limit;
-    const userId =
-      req.user && req.user.id ? mongoose.Types.ObjectId(req.user.id) : null;
+    const userId = req.user && req.user.id ? mongoose.Types.ObjectId(req.user.id) : null;
 
-    // Base pipeline without skip and limit for counting
+    // Fetch user location
+    const user = await User.findById(req.user.id).lean();
+    if (!user || !user.location || !user.location.coordinates) {
+      return res.status(400).json({ message: "User location not found." });
+    }
+
+    const userLat = parseFloat(user.location.coordinates.lat);
+    const userLng = parseFloat(user.location.coordinates.lng);
+
     const basePipeline = [
-      {
-        $match: { startDate: { $gte: currentDate }, approved: true },
-      },
+      { $match: { startDate: { $gte: currentDate }, approved: true } },
       { $sort: { startDate: 1 } },
     ];
 
-    // Main pipeline with pagination
     const pipeline = [
       ...basePipeline,
       { $skip: skip },
@@ -822,14 +824,7 @@ export const getUpComingEvents = async (req, res, next) => {
           localField: "user",
           foreignField: "_id",
           pipeline: [
-            {
-              $project: {
-                _id: 1,
-                name: 1,
-                email: 1,
-                profile: 1,
-              },
-            },
+            { $project: { _id: 1, name: 1, email: 1, profile: 1 } },
           ],
           as: "creator",
         },
@@ -841,12 +836,7 @@ export const getUpComingEvents = async (req, res, next) => {
           pipeline: [
             {
               $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$eventId", "$$eventId"] },
-                    { $eq: ["$userId", userId] },
-                  ],
-                },
+                $expr: { $and: [{ $eq: ["$eventId", "$$eventId"] }, { $eq: ["$userId", userId] }] },
               },
             },
           ],
@@ -862,34 +852,42 @@ export const getUpComingEvents = async (req, res, next) => {
       { $project: { userLikes: 0, user: 0, __v: 0 } },
     ];
 
-    // Count pipeline
     const countPipeline = [...basePipeline, { $count: "total" }];
 
-    // Execute aggregation
     const [events, countResult] = await Promise.all([
       Events.aggregate(pipeline),
       Events.aggregate(countPipeline),
     ]);
 
-    // Calculate total and total pages
+    // Batch process distance calculation
+    const eventsWithDistance = await Promise.all(events.map(async (event) => {
+      const locationData = await extractCoordinatesFromLink(event.locationLink);
+
+      if (!locationData) {
+        return { ...event, distanceInKm: null };
+      }
+
+      const eventLat = locationData.lat;
+      const eventLng = locationData.lng;
+
+      const distance = calculateDistanceInKm(userLat, userLng, eventLat, eventLng);
+
+      return {
+        ...event,
+        distanceInKm: parseFloat(distance.toFixed(3)),
+      };
+    }));
+
     const total = countResult.length > 0 ? countResult[0].total : 0;
     const totalPages = Math.ceil(total / limit);
 
-    if (!events) {
-      return res
-        .status(500)
-        .json({ success: false, message: "Request Failed" });
-    }
-
-    if (events.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "No upcoming events found" });
+    if (eventsWithDistance.length === 0) {
+      return res.status(404).json({ success: false, message: "No upcoming events found" });
     }
 
     return res.status(200).json({
       success: true,
-      events,
+      events: eventsWithDistance,
       pagination: {
         page,
         limit,
@@ -904,6 +902,8 @@ export const getUpComingEvents = async (req, res, next) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+
 
 export const getPastEvents = async (req, res, next) => {
   try {
