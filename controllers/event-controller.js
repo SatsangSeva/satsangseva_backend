@@ -402,10 +402,10 @@ export const updateEvent = async (req, res, next) => {
       return abortTransaction(400, "Invalid event data format");
     }
 
-    const errors = validateEventInputs(eventData);
-    if (errors) {
-      return abortTransaction(422, "Validation failed", errors);
-    }
+    // const errors = validateEventInputs(eventData);
+    // if (errors) {
+    //   return abortTransaction(422, "Validation failed", errors);
+    // }
 
     const {
       eventName,
