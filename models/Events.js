@@ -5,16 +5,13 @@ const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const eventAgendaItemSchema = new mongoose.Schema({
   subEvent: {
     type: Number,
-    required: true,
     min: 1,
   },
   title: {
     type: String,
-    required: true,
   },
   description: {
     type: String,
-    required: true,
   },
 },{_id:false});
 const locationSchema = new mongoose.Schema({
@@ -77,13 +74,6 @@ const eventSchema = new mongoose.Schema(
     currentNoOfAttendees: { type: String, default: 0 },
     eventAgenda: {
       type: [eventAgendaItemSchema],
-      required: true,
-      validate: {
-        validator: function (agenda) {
-          return agenda.length > 0;
-        },
-        message: "Event must have at least one agenda item",
-      },
     },
     artistOrOratorName: {
       type: String,
@@ -142,7 +132,7 @@ const eventSchema = new mongoose.Schema(
     },
     approved: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     bookings: [{ type: mongoose.Types.ObjectId, ref: "Booking" }],
     likeCount: { type: Number, default: 0 },
