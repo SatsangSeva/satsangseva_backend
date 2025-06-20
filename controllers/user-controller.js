@@ -1098,8 +1098,6 @@ export const login = async (req, res) => {
       !email ||
       !email.trim() ||
       !password ||
-      !fcmToken ||
-      !fcmToken.trim() ||
       !password.trim()
     ) {
       return res
