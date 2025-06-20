@@ -132,7 +132,7 @@ const eventSchema = new mongoose.Schema(
     },
     approved: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     bookings: [{ type: mongoose.Types.ObjectId, ref: "Booking" }],
     likeCount: { type: Number, default: 0 },
