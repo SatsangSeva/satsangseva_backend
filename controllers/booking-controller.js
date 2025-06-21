@@ -101,8 +101,7 @@ export const newBooking = async (req, res) => {
 
     const imgBuffer = await generateTicketImage({
       event: {
-        title: existingEvent.title,
-        sponsor: "existingEvent.sponsor",
+        title: existingEvent.eventName,
         host: existingEvent.organizerName,
         venue: `${existingEvent.address?.address}, ${existingEvent.address?.landmark}, ${existingEvent.address?.city}, ${existingEvent.address?.state}, ${existingEvent.address?.postalCode}, ${existingEvent.address?.country}`,
         date: existingEvent.startDate,
