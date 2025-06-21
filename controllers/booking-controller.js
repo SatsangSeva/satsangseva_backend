@@ -115,8 +115,8 @@ export const newBooking = async (req, res) => {
       posterUrl: existingEvent.eventPosters[0]
     });
 
-    const outPath = path.resolve('debug-ticket.png');
-    await writeFile(outPath, imgBuffer);
+    // const outPath = path.resolve('debug-ticket.png');
+    // await writeFile(outPath, imgBuffer);
 
     const mediaId = await uploadMedia(imgBuffer, {
       filename: `ticket-${booking._id}.png`,
