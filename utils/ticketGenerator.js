@@ -123,7 +123,6 @@ export const generateTicketImage = async ({
   ctx.font = '16px sans-serif';
   [
     `Event: ${event.title}`,
-    `Sponsor: ${event.sponsor}`,
     `Host: ${event.host}`,
     `Venue: ${event.venue}`,
     `Date: ${event.date}`,
