@@ -14,6 +14,7 @@ import {
   getCount,
   resetPassword,
   sendWhatsAppOtp,
+  sendNotificationToAllUsers,
   verifyWhatsAppOtp,
 } from "../controllers/admin-controller.js";
 import {
@@ -47,4 +48,5 @@ adminRouter.get("/blog/:id", getBlogById);
 adminRouter.delete("/blog/:id", deleteBlog);
 
 adminRouter.get("/analytics", getCount);
+adminRouter.post('/send-notification' , sendNotificationToAllUsers)
 export default adminRouter;
