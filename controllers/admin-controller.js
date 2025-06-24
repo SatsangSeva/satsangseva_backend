@@ -1146,3 +1146,96 @@ export const adminUpdateEvent = async (req, res, next) => {
     session.endSession();
   }
 };
+
+
+export const sendNotificationToAllUsers = async (req, res) => {
+  try {
+    const { title, body } = req.body;
+
+    if (!title || !body) {
+      return res.status(400).json({
+        success: false,
+        message: "Title and description (body) are required",
+      });
+    }
+
+    const users = await User.find({ fcmToken: { $exists: true, $not: { $size: 0 } } });
+
+    if (!users.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No users with FCM tokens found",
+      });
+    }
+
+    const tokenUserMap = {};
+    const tokens = users
+      .map((user) => {
+        const latestToken = user.fcmToken[user.fcmToken.length - 1];
+        if (latestToken) {
+          tokenUserMap[latestToken] = user._id; // Map token to userId
+          return latestToken;
+        }
+        return null;
+      })
+      .filter((token) => token);
+
+    if (!tokens.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No valid FCM tokens found",
+      });
+    }
+
+    const message = {
+      notification: { title, body },
+      data: { type: 'ADMIN_BROADCAST' },
+      tokens,
+    };
+
+    const response = await getMessaging().sendEachForMulticast(message);
+
+    const invalidTokens = [];
+
+    response.responses.forEach((resp, idx) => {
+      const token = tokens[idx];
+      if (!resp.success) {
+        console.error('Error sending to token:', token, resp.error);
+        if (
+          resp.error.code === 'messaging/invalid-argument' ||
+          resp.error.code === 'messaging/registration-token-not-registered'
+        ) {
+          invalidTokens.push(token);
+        }
+      } else {
+        // ✅ Only Console user ID here
+        console.log('Notification successfully sent to user ID:', tokenUserMap[token]);
+      }
+    });
+
+    if (invalidTokens.length > 0) {
+      await User.updateMany(
+        { fcmToken: { $in: invalidTokens } },
+        { $pull: { fcmToken: { $in: invalidTokens } } }
+      );
+      console.log('Invalid tokens removed successfully.');
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Notification sent successfully',
+      result: {
+        successCount: response.successCount,
+        failureCount: response.failureCount,
+        failedTokens: invalidTokens,
+      },
+    });
+  } catch (error) {
+    console.error('Error in sendNotificationToAllUsers:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+};
