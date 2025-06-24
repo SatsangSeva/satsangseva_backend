@@ -13,6 +13,7 @@ import crypto from "crypto";
 
 import Events from "../models/Events.js";
 import Bookings from "../models/Bookings.js";
+import { getMessaging } from "firebase-admin/messaging";
 dotenv.config();
 
 const emailTemplate = `
