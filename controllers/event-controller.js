@@ -7,6 +7,7 @@ import cloudinary, { getPublicIdFromUrl } from "../utils/cloudinary.js";
 import Bookings from "../models/Bookings.js";
 import dotenv from "dotenv";
 import { calculateDistanceInKm, extractCoordinatesFromLink } from "../config/geoConfig.js";
+import { sendNotificationToDevices } from "../utils/pushNotification.js";
 dotenv.config();
 
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
@@ -124,6 +125,21 @@ export const addEvent = async (req, res, next) => {
         adminUser.events.push(event);
         await adminUser.save({ session });
         await session.commitTransaction();
+
+          const users = await User.find({ fcmToken: { $exists: true, $not: { $size: 0 } } });
+      const tokens = users
+        .map((user) => user.fcmToken[user.fcmToken.length - 1])
+        .filter((token) => token);
+
+      if (tokens.length > 0) {
+        await sendNotificationToDevices({
+          tokens,
+          title: "New Event Added",
+          body: `${eventData.eventName} has been posted. Check it out now!`,
+          data: { type: "EVENT_UPDATE", eventId: event._id.toString() },
+        });
+      }
+
 
         // console.log(`New event is `, event);
         return res.status(201).json({
