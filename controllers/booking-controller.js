@@ -7,7 +7,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { isNonFatalWaError, sendTemplateMessage, uploadMedia } from "../utils/whatsappService.js";
 import { generateTicketImage } from "../utils/ticketGenerator.js";
-
+import { sendNotificationToDevice } from "../utils/pushNotification.js";
 dotenv.config();
 
 // POST /bookings - Create new booking
@@ -155,6 +155,24 @@ export const newBooking = async (req, res) => {
       }
       // swallow and continue
     }
+
+     try {
+      const userFcmTokens = existingUser.fcmToken || [];
+      const userDeviceToken = userFcmTokens.length > 0 ? userFcmTokens[userFcmTokens.length - 1] : null;
+
+      if (userDeviceToken) {
+        await sendNotificationToDevice({
+          token: userDeviceToken,
+          title: "Booking Confirmed",
+          body: `Your booking for ${existingEvent.eventName} is confirmed.`,
+          data: { bookingId: booking._id.toString(), eventId: existingEvent._id.toString() },
+        });
+      }
+    } catch (notificationError) {
+      console.error('Notification send error:', notificationError.message);
+      // Do not fail the transaction if notification fails
+    }
+    
     await session.commitTransaction();
 
     return res.status(201).json({
