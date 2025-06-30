@@ -807,118 +807,6 @@ export const getEventsByKM = async (req, res, next) => {
   }
 };
 
-
-// export const getUpComingEvents = async (req, res, next) => {
-//   try {
-//     const currentDate = new Date();
-//     const page = parseInt(req.query.page) || 1;
-//     const limit = parseInt(req.query.limit) || 25;
-//     const skip = (page - 1) * limit;
-//     const userId = req.user && req.user.id ? mongoose.Types.ObjectId(req.user.id) : null;
-
-//     // Fetch user location
-//     const user = await User.findById(req.user.id).lean();
-//     if (!user || !user.location || !user.location.coordinates) {
-//       return res.status(400).json({ message: "User location not found." });
-//     }
-
-//     const userLat = parseFloat(user.location.coordinates.lat);
-//     const userLng = parseFloat(user.location.coordinates.lng);
-
-//     const basePipeline = [
-//       { $match: { startDate: { $gte: currentDate }, approved: true } },
-//       { $sort: { startDate: 1 } },
-//     ];
-
-//     const pipeline = [
-//       ...basePipeline,
-//       { $skip: skip },
-//       { $limit: limit },
-//       {
-//         $lookup: {
-//           from: "users",
-//           localField: "user",
-//           foreignField: "_id",
-//           pipeline: [
-//             { $project: { _id: 1, name: 1, email: 1, profile: 1 } },
-//           ],
-//           as: "creator",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "likes",
-//           let: { eventId: "$_id" },
-//           pipeline: [
-//             {
-//               $match: {
-//                 $expr: { $and: [{ $eq: ["$eventId", "$$eventId"] }, { $eq: ["$userId", userId] }] },
-//               },
-//             },
-//           ],
-//           as: "userLikes",
-//         },
-//       },
-//       {
-//         $addFields: {
-//           isLiked: { $gt: [{ $size: "$userLikes" }, 0] },
-//           creator: { $arrayElemAt: ["$creator", 0] },
-//         },
-//       },
-//       { $project: { userLikes: 0, user: 0, __v: 0 } },
-//     ];
-
-//     const countPipeline = [...basePipeline, { $count: "total" }];
-
-//     const [events, countResult] = await Promise.all([
-//       Events.aggregate(pipeline),
-//       Events.aggregate(countPipeline),
-//     ]);
-
-//     // Batch process distance calculation
-//     const eventsWithDistance = await Promise.all(events.map(async (event) => {
-//       const locationData = await extractCoordinatesFromLink(event.locationLink);
-
-//       if (!locationData) {
-//         return { ...event, distanceInKm: null };
-//       }
-
-//       const eventLat = locationData.lat;
-//       const eventLng = locationData.lng;
-
-//       const distance = calculateDistanceInKm(userLat, userLng, eventLat, eventLng);
-
-//       return {
-//         ...event,
-//         distanceInKm: parseFloat(distance.toFixed(3)),
-//       };
-//     }));
-
-//     const total = countResult.length > 0 ? countResult[0].total : 0;
-//     const totalPages = Math.ceil(total / limit);
-
-//     if (eventsWithDistance.length === 0) {
-//       return res.status(404).json({ success: false, message: "No upcoming events found" });
-//     }
-
-//     return res.status(200).json({
-//       success: true,
-//       events: eventsWithDistance,
-//       pagination: {
-//         page,
-//         limit,
-//         totalEvents: total,
-//         totalPages,
-//         hasNextPage: page < totalPages,
-//         hasPrevPage: page > 1,
-//       },
-//     });
-//   } catch (err) {
-//     console.error("getUpComingEvents error:", err);
-//     return res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
 export const getUpComingEvents = async (req, res, next) => {
   try {
     const currentDate = new Date();
@@ -992,22 +880,23 @@ export const getUpComingEvents = async (req, res, next) => {
     // If user location is available, calculate distance
     if (userLat !== null && userLng !== null) {
       eventsWithDistance = await Promise.all(events.map(async (event) => {
-        const locationData = await extractCoordinatesFromLink(event.locationLink);
+  const locationData = await extractCoordinatesFromLink(event.locationLink);
 
-        if (!locationData) {
-          return { ...event, distanceInKm: null };
-        }
+  if (!locationData) {
+    return { ...event, distanceInKm: null };
+  }
 
-        const eventLat = locationData.lat;
-        const eventLng = locationData.lng;
+  const eventLat = locationData.lat;
+  const eventLng = locationData.lng;
 
-        const distance = calculateDistanceInKm(userLat, userLng, eventLat, eventLng);
+  const distance = await calculateDistanceInKm(userLat, userLng, eventLat, eventLng);
 
-        return {
-          ...event,
-          distanceInKm: parseFloat(distance.toFixed(3)),
-        };
-      }));
+  return {
+    ...event,
+    distanceInKm: distance !== null ? parseFloat(distance.toFixed(3)) : null
+  };
+}));
+
     } else {
       // If user location is not available, just return events as-is without distance
       eventsWithDistance = events.map(event => ({ ...event, distanceInKm: null }));
@@ -1037,7 +926,6 @@ export const getUpComingEvents = async (req, res, next) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
-
 
 export const getPastEvents = async (req, res, next) => {
   try {
@@ -1431,255 +1319,6 @@ export const deleteEvent = async (req, res, next) => {
   }
 };
 
-// export const searchEvents = async (req, res, next) => {
-//   try {
-//     // Extract pagination parameters
-//     const page = parseInt(req.query.page) || 1;
-//     const limit = parseInt(req.query.limit) || 25;
-//     const skip = (page - 1) * limit;
-
-//     // Extract user ID if available
-//     const userId = req.user && req.user.id ? mongoose.Types.ObjectId(req.user.id) : null;
-
-//     // Current date for filtering future events
-//     const currentDate = new Date();
-
-//     // Build the aggregation pipeline
-//     const pipeline = [];
-
-//     // Handle geolocation search if coordinates are provided
-//     if (req.query.lat && req.query.long) {
-//       const location = [parseFloat(req.query.long), parseFloat(req.query.lat)];
-//       pipeline.push({
-//         $geoNear: {
-//           near: location,
-//           distanceField: "distance",
-//           spherical: true,
-//         },
-//       });
-//     }
-
-//     // Build match criteria for search parameters
-//     // We'll always require approved events and future dates
-//     const baseMatchQuery = {
-//       approved: true,
-//       startDate: { $gte: currentDate }
-//     };
-
-//     // Build an array of OR conditions
-//     const orConditions = [];
-
-//     // Add name search if provided
-//     if (req.query.name) {
-//       orConditions.push({ eventName: { $regex: req.query.name, $options: "i" } });
-//     }
-
-//     // Add address search if provided
-//     if (req.query.add) {
-//       orConditions.push({ "address.address": { $regex: req.query.add, $options: "i" } });
-//     }
-
-//     // Add category search if provided
-//     if (req.query.category) {
-//       let categories = req.query.category;
-//       if (!Array.isArray(categories)) {
-//         categories = categories.split(",").map(cat => cat.trim());
-//       }
-//       orConditions.push({ eventCategory: { $in: categories.map(cat => new RegExp(cat, "i")) } });
-//     }
-
-//     // Add artist/orator search if provided
-//     if (req.query.artist || req.query.orator) {
-//       const artistOrOrators = [];
-//       if (req.query.artist) {
-//         const artists = Array.isArray(req.query.artist) ? req.query.artist : req.query.artist.split(",").map(a => a.trim());
-//         artistOrOrators.push(...artists);
-//       }
-//       if (req.query.orator) {
-//         const orators = Array.isArray(req.query.orator) ? req.query.orator : req.query.orator.split(",").map(o => o.trim());
-//         artistOrOrators.push(...orators);
-//       }
-//       if (artistOrOrators.length > 0) {
-//         orConditions.push({ artistOrOratorName: { $in: artistOrOrators.map(name => new RegExp(name, "i")) } });
-//       }
-//     }
-
-//     // Add organizer search if provided - FIXED THIS SECTION
-//     if (req.query.organizer) {
-//       const organizers = Array.isArray(req.query.organizer)
-//         ? req.query.organizer
-//         : req.query.organizer.split(",").map(org => org.trim());
-
-//       if (organizers.length > 0) {
-//         // Changed to use exact RegExp objects for each organizer name
-//         const organizerRegexes = organizers.map(name => new RegExp(name, "i"));
-//         orConditions.push({ organizerName: { $in: organizerRegexes } });
-//       }
-//     }
-
-//     // Add language search if provided
-//     if (req.query.language) {
-//       orConditions.push({ eventLang: { $regex: req.query.language, $options: "i" } });
-//     }
-
-//     // Add date search if provided
-//     if (req.query.date) {
-//       const startOfDay = new Date(`${req.query.date}T00:00:00Z`);
-//       const endOfDay = new Date(`${req.query.date}T23:59:59Z`);
-//       orConditions.push({ startDate: { $gte: startOfDay, $lte: endOfDay } });
-//     }
-
-//     // Complete match query
-//     let matchQuery;
-//     if (orConditions.length > 0) {
-//       // Combine base conditions with OR conditions
-//       matchQuery = {
-//         $and: [
-//           baseMatchQuery,
-//           { $or: orConditions }
-//         ]
-//       };
-//     } else {
-//       // If no OR conditions, just use base conditions
-//       matchQuery = baseMatchQuery;
-//     }
-
-//     // Add match query to pipeline
-//     pipeline.push({ $match: matchQuery });
-
-//     // Determine sort order - by distance if geo search, otherwise by date
-//     if (req.query.lat && req.query.long) {
-//       pipeline.push({ $sort: { distance: 1 } });
-//     } else {
-//       pipeline.push({ $sort: { startDate: 1 } });
-//     }
-
-//     // Count total documents for pagination info
-//     const countPipeline = [...pipeline];
-//     countPipeline.push({ $count: "total" });
-
-//     // Add pagination
-//     pipeline.push(
-//       { $skip: skip },
-//       { $limit: limit }
-//     );
-
-//     // Add creator and likes lookups
-//     pipeline.push(
-//       {
-//         $lookup: {
-//           from: "users",
-//           localField: "user",
-//           foreignField: "_id",
-//           pipeline: [
-//             {
-//               $project: {
-//                 _id: 1,
-//                 name: 1,
-//                 email: 1,
-//                 profile: 1,
-//               },
-//             },
-//           ],
-//           as: "creator",
-//         },
-//       },
-//       {
-//         $lookup: {
-//           from: "likes",
-//           let: { eventId: "$_id" },
-//           pipeline: [
-//             {
-//               $match: {
-//                 $expr: {
-//                   $and: [
-//                     { $eq: ["$eventId", "$$eventId"] },
-//                     { $eq: ["$userId", userId] },
-//                   ],
-//                 },
-//               },
-//             },
-//           ],
-//           as: "userLikes",
-//         },
-//       },
-//       {
-//         $addFields: {
-//           isLiked: { $gt: [{ $size: "$userLikes" }, 0] },
-//           creator: { $arrayElemAt: ["$creator", 0] },
-//         },
-//       },
-//       // Project stage - ensuring all fields match schema fields
-//       {
-//         $project: {
-//           _id: 1,
-//           distance: 1,
-//           eventName: 1,
-//           eventCategory: 1,
-//           eventLang: 1,
-//           noOfAttendees: 1,
-//           eventPrice: 1,
-//           artistOrOratorName: 1,
-//           organizerName: 1,
-//           organizerWhatsapp: 1,
-//           eventLink: 1,
-//           bookingLink: 1,
-//           locationLink: 1,
-//           address: 1,
-//           startDate: 1,
-//           endDate: 1,
-//           startTime: 1,
-//           endTime: 1,
-//           eventDesc: 1,
-//           eventPosters: 1,
-//           approved: 1,
-//           creator: 1,
-//           isLiked: 1,
-//           likeCount: 1,
-//         },
-//       }
-//     );
-
-//     // Execute aggregation
-//     const [events, countResult] = await Promise.all([
-//       Events.aggregate(pipeline),
-//       Events.aggregate(countPipeline),
-//     ]);
-
-//     // Calculate total and total pages
-//     const total = countResult.length > 0 ? countResult[0].total : 0;
-//     const totalPages = Math.ceil(total / limit);
-
-//     // Return appropriate response
-//     if (!events || events.length === 0) {
-//       return res.status(404).json({
-//         success: false,
-//         message: "No events found matching the criteria",
-//       });
-//     }
-
-//     return res.status(200).json({
-//       success: true,
-//       events,
-//       pagination: {
-//         page,
-//         limit,
-//         totalEvents: total,
-//         totalPages,
-//         hasNextPage: page < totalPages,
-//         hasPrevPage: page > 1,
-//       },
-//     });
-//   } catch (error) {
-//     console.error("Events API Error:", error);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Failed to fetch events",
-//       error: error.message,
-//     });
-//   }
-// };
-
 export const searchEvents = async (req, res, next) => {
   try {
     // Existing pagination and user logic
@@ -1868,7 +1507,7 @@ export const searchEvents = async (req, res, next) => {
         const eventLat = locationData.lat;
         const eventLng = locationData.lng;
 
-        const distance = calculateDistanceInKm(userLat, userLng, eventLat, eventLng);
+        const distance = await calculateDistanceInKm(userLat, userLng, eventLat, eventLng);
 
         return {
           ...event,
