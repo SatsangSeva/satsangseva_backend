@@ -64,22 +64,21 @@ export const extractCoordinatesFromLink = async (shortUrl) => {
 
 
 
-export const calculateDistanceInKm = (lat1, lon1, lat2, lon2) => {
-  const R = 6371.0088; // More accurate earth radius in km
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(deg2rad(lat1)) *
-      Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+export const calculateDistanceInKm = async (lat1, lon1, lat2, lon2) => {
+  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lat1},${lon1}&destinations=${lat2},${lon2}&key=${process.env.GMAP_KEY}`;
+  const res = await axios.get(url);
+  const data = res.data;
 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  return distance; // Do not round here
+  if (data.rows[0].elements[0].status === 'OK') {
+    const distanceValue = data.rows[0].elements[0].distance.value; // in meters
+    const distanceKm = distanceValue / 1000;
+    return distanceKm;
+  } else {
+    console.error('❌ Google API Error:', data.rows[0].elements[0].status);
+    return null;
+  }
 };
 
-const deg2rad = (deg) => deg * (Math.PI / 180);
 
 
 
