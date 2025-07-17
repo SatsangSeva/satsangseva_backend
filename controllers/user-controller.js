@@ -1214,10 +1214,15 @@ export const getEventsOfUser = async (req, res) => {
 //     return res.status(500).json({ message: "Internal server error" });
 //   }
 // };
-
 export const getUserById = async (req, res) => {
   const { id } = req.params;
+  const requestId = req.user.id
   try {
+
+     if (requestId !== id) {
+      await User.findByIdAndUpdate(id, { $inc: { profileView: 1 } });
+    }
+
     // Get user data without transformation
     const user = await User.findById(id).select("-password").lean();
 
@@ -1253,9 +1258,12 @@ export const getUserById = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
 export const getuserInsight = async (req, res) => {
   try {
     const userId = req.user.id;
+
+    const user = await User.findById(userId).select("profileView");
 
     const subscribers = await Subscription.countDocuments({
       subscribedTo: userId,
@@ -1279,6 +1287,7 @@ export const getuserInsight = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
+        profileView: user?.profileView || 0,
         subscribers,
         totalEvents,
         upcomingApprovedEvents,
@@ -1286,6 +1295,7 @@ export const getuserInsight = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Error in getuserInsight:", error);
     return res.status(500).json({
       success: false,
       message: "Server error while fetching insights",
