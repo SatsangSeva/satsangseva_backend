@@ -32,7 +32,7 @@ userRouter.get("/", getAllUsers);
 userRouter.get("/type/:id", authMiddleware, getUsersByType);
 userRouter.get("/insight", authMiddleware, getuserInsight);
 // userRouter.put("/:id", updateUser);
-userRouter.get("/:id", getUserById);
+userRouter.get("/:id",authMiddleware, getUserById);
 userRouter.put("/basic-update", updateBasicUserInfo);
 userRouter.post("/google/send-update-otp", sendGoogleUpdateOtp);
 userRouter.post("/google/verify-update-otp", verifyGoogleUpdateOtp);
