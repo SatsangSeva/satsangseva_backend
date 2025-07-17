@@ -92,12 +92,16 @@ export const getUserSubscribers = async (req, res) => {
 };
 
 export const getCount = async (req, res) => {
-  const userId = req.params.id;
+   const userId = req.params.id;
+  const requestId = req.user.id
   try {
     const userExists = await User.findById(userId);
     if (!userExists) {
       return res.status(404).json({ message: "User not found" });
     }
+    if (requestId !== userId) {
+          await User.findByIdAndUpdate(userId, { $inc: { profileView: 1 } });
+        }
 
     const [subscriptions, subscribers] = await Promise.all([
       Subscription.countDocuments({ subscriber: userId }),
