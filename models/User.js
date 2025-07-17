@@ -25,6 +25,7 @@ const userSchema = new Schema({
     unique: true,
     lowercase: true,
   },
+   profileView : {type : Number , default:0},
   phoneNumber: {
     type: String,
     // required: true,
