@@ -1321,26 +1321,24 @@ export const deleteEvent = async (req, res, next) => {
 
 export const searchEvents = async (req, res, next) => {
   try {
-    // Existing pagination and user logic
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
     const skip = (page - 1) * limit;
-
-    const userId = req.user && req.user.id ? mongoose.Types.ObjectId(req.user.id) : null;
+    const userId = req.user?.id ? mongoose.Types.ObjectId(req.user.id) : null;
 
     const currentDate = new Date();
     const pipeline = [];
 
+    // ✅ Get user location from database instead of query
     let userLat = null;
     let userLng = null;
 
-    // If lat/long are provided in query, use them
-    if (req.query.lat && req.query.long) {
-      userLat = parseFloat(req.query.lat);
-      userLng = parseFloat(req.query.long);
+    const user = await User.findById(req.user.id).lean();
+    if (user?.location?.coordinates) {
+      userLat = parseFloat(user.location.coordinates.lat);
+      userLng = parseFloat(user.location.coordinates.lng);
     }
 
-    // Build search filters (same as your existing logic)
     const baseMatchQuery = {
       approved: true,
       startDate: { $gte: currentDate }
@@ -1400,12 +1398,9 @@ export const searchEvents = async (req, res, next) => {
       orConditions.push({ startDate: { $gte: startOfDay, $lte: endOfDay } });
     }
 
-    let matchQuery;
-    if (orConditions.length > 0) {
-      matchQuery = { $and: [baseMatchQuery, { $or: orConditions }] };
-    } else {
-      matchQuery = baseMatchQuery;
-    }
+    const matchQuery = orConditions.length > 0
+      ? { $and: [baseMatchQuery, { $or: orConditions }] }
+      : baseMatchQuery;
 
     pipeline.push({ $match: matchQuery });
     pipeline.push({ $sort: { startDate: 1 } });
@@ -1493,29 +1488,28 @@ export const searchEvents = async (req, res, next) => {
     const total = countResult.length > 0 ? countResult[0].total : 0;
     const totalPages = Math.ceil(total / limit);
 
-    // 👉 Add distance calculation if user location is provided
     let eventsWithDistance = events;
 
-    if (userLat && userLng) {
+    // ✅ Distance calculation from user location (if available)
+    if (userLat !== null && userLng !== null) {
       eventsWithDistance = await Promise.all(events.map(async (event) => {
         const locationData = await extractCoordinatesFromLink(event.locationLink);
+        if (!locationData) return { ...event, distanceInKm: null };
 
-        if (!locationData) {
-          return { ...event, distanceInKm: null };
-        }
-
-        const eventLat = locationData.lat;
-        const eventLng = locationData.lng;
-
-        const distance = await calculateDistanceInKm(userLat, userLng, eventLat, eventLng);
+        const distance = await calculateDistanceInKm(
+          userLat,
+          userLng,
+          locationData.lat,
+          locationData.lng
+        );
 
         return {
           ...event,
-          distanceInKm: parseFloat(distance.toFixed(3)),
+          distanceInKm: distance ? parseFloat(distance.toFixed(3)) : null,
         };
       }));
 
-      // Optional: Sort events by distance if needed
+      // Optional: Sort by distance
       eventsWithDistance.sort((a, b) => a.distanceInKm - b.distanceInKm);
     }
 
