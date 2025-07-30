@@ -70,26 +70,36 @@ export const calculateDistanceInKm = async (lat1, lon1, lat2, lon2) => {
     const res = await axios.get(url);
     const data = res.data;
 
+    console.log("Google Distance Matrix API response:", JSON.stringify(data, null, 2));
+
     if (
-      data &&
-      data.rows &&
-      data.rows.length > 0 &&
-      data.rows[0].elements &&
-      data.rows[0].elements.length > 0 &&
-      data.rows[0].elements[0].status === "OK"
+      data?.rows?.[0]?.elements?.[0]?.status === "OK" &&
+      data?.rows?.[0]?.elements?.[0]?.distance
     ) {
-      const distanceMeters = data.rows[0].elements[0].distance.value; // in meters
+      const distanceMeters = data.rows[0].elements[0].distance.value;
       const distanceKm = distanceMeters / 1000;
       return parseFloat(distanceKm.toFixed(3));
     } else {
-      console.error("Google API Error:", data.rows[0].elements[0].status);
-      return null;
+      console.warn("Google API failed with status:", data?.rows?.[0]?.elements?.[0]?.status);
+      
+      // ✅ Fallback to haversine if no route found
+      const toRad = (value) => (value * Math.PI) / 180;
+      const R = 6371; // Radius of Earth in KM
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const fallbackDistance = R * c;
+      console.warn("Fallback distance (haversine):", fallbackDistance);
+      return parseFloat(fallbackDistance.toFixed(3));
     }
   } catch (err) {
     console.error("Error fetching distance:", err.message);
     return null;
   }
 };
-
 
 
