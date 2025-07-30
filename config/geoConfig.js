@@ -65,16 +65,28 @@ export const extractCoordinatesFromLink = async (shortUrl) => {
 
 
 export const calculateDistanceInKm = async (lat1, lon1, lat2, lon2) => {
-  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lat1},${lon1}&destinations=${lat2},${lon2}&key=${process.env.GMAP_KEY}`;
-  const res = await axios.get(url);
-  const data = res.data;
+  try {
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${lat1},${lon1}&destinations=${lat2},${lon2}&mode=driving&units=metric&key=${process.env.GMAP_KEY}`;
+    const res = await axios.get(url);
+    const data = res.data;
 
-  if (data.rows[0].elements[0].status === 'OK') {
-    const distanceValue = data.rows[0].elements[0].distance.value; // in meters
-    const distanceKm = distanceValue / 1000;
-    return distanceKm;
-  } else {
-    console.error('❌ Google API Error:', data.rows[0].elements[0].status);
+    if (
+      data &&
+      data.rows &&
+      data.rows.length > 0 &&
+      data.rows[0].elements &&
+      data.rows[0].elements.length > 0 &&
+      data.rows[0].elements[0].status === "OK"
+    ) {
+      const distanceMeters = data.rows[0].elements[0].distance.value; // in meters
+      const distanceKm = distanceMeters / 1000;
+      return parseFloat(distanceKm.toFixed(3));
+    } else {
+      console.error("Google API Error:", data.rows[0].elements[0].status);
+      return null;
+    }
+  } catch (err) {
+    console.error("Error fetching distance:", err.message);
     return null;
   }
 };
