@@ -893,13 +893,15 @@ export const getUpComingEvents = async (req, res, next) => {
 
   return {
     ...event,
-    distanceInKm: distance !== null ? parseFloat(distance.toFixed(3)) : null
+    distanceInKm: distance !== null ? parseFloat(distance.toFixed(3)) : null,
+    eventLat,
+    eventLng
   };
 }));
 
     } else {
       // If user location is not available, just return events as-is without distance
-      eventsWithDistance = events.map(event => ({ ...event, distanceInKm: null }));
+      eventsWithDistance = events.map(event => ({ ...event, distanceInKm: null , eventLat ,eventLng }));
     }
 
     const total = countResult.length > 0 ? countResult[0].total : 0;
@@ -1494,6 +1496,8 @@ export const searchEvents = async (req, res, next) => {
     if (userLat !== null && userLng !== null) {
       eventsWithDistance = await Promise.all(events.map(async (event) => {
         const locationData = await extractCoordinatesFromLink(event.locationLink);
+        let eventLat = locationData.lat
+        let eventLong = locationData.lng
         if (!locationData) return { ...event, distanceInKm: null };
 
         const distance = await calculateDistanceInKm(
@@ -1506,6 +1510,8 @@ export const searchEvents = async (req, res, next) => {
         return {
           ...event,
           distanceInKm: distance ? parseFloat(distance.toFixed(3)) : null,
+          eventLat,
+          eventLong
         };
       }));
 
@@ -1534,7 +1540,6 @@ export const searchEvents = async (req, res, next) => {
     });
   }
 };
-
 export const suggestEventNames = async (req, res, next) => {
   try {
     const eventName = req.query.name;
