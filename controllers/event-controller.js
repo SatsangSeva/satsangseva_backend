@@ -1496,8 +1496,8 @@ export const searchEvents = async (req, res, next) => {
     if (userLat !== null && userLng !== null) {
       eventsWithDistance = await Promise.all(events.map(async (event) => {
         const locationData = await extractCoordinatesFromLink(event.locationLink);
-        let eventLat = locationData.lat
-        let eventLong = locationData.lng
+        let eventLat = locationData?.lat || 0
+        let eventLong = locationData?.lng || 0
         if (!locationData) return { ...event, distanceInKm: null };
 
         const distance = await calculateDistanceInKm(
