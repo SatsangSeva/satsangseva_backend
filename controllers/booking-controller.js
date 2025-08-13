@@ -89,13 +89,16 @@ export const newBooking = async (req, res) => {
     await booking.save({ session });
 
     // Update related user and event documents
-    existingUser.bookings.push(booking._id);
-    existingEvent.bookings.push(booking._id);
-    existingEvent.currentNoOfAttendees += Number(noOfAttendee);
-    await Promise.all([
-      existingUser.save({ session }),
-      existingEvent.save({ session }),
-    ]);
+     existingUser.bookings.push(booking._id);
+existingEvent.bookings.push(booking._id);
+
+existingEvent.currentNoOfAttendees =
+  Number(existingEvent.currentNoOfAttendees) + Number(noOfAttendee);
+
+await Promise.all([
+  existingUser.save({ session }),
+  existingEvent.save({ session }),
+]);
 
     const logoPath = path.join(process.cwd(), "public", "images", "logo.png");
 
