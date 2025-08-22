@@ -253,9 +253,14 @@ export const getBookedEventsByUser = async (req, res) => {
       });
     }
 
-    let events = bookings.map((booking) => booking.event);
+    // Only take events that are not null
+    let events = bookings
+      .map((booking) => booking.event || null) // keep null if missing
+      .filter((event) => event !== null);      // remove nulls safely
+
+    // Remove duplicates safely
     events = Array.from(
-      new Map(events.map((event) => [event._id?.toString(), event])).values()
+      new Map(events.map((event) => [event._id.toString(), event])).values()
     );
 
     return res.status(200).json({ success: true, events });
